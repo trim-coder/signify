@@ -1,0 +1,125 @@
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" rel="stylesheet"/>
+    <script>
+        function toggleVisibility() {
+            const element = document.getElementById('toggleField');
+            if (element.style.display === 'none') {
+                element.style.display = 'block';
+            } else {
+                element.style.display = 'none';
+            }
+        }
+    </script>
+</head>
+<body class="bg-gray-100 font-sans antialiased">
+    <div class="flex flex-col md:flex-row h-screen">
+        <!-- Sidebar -->
+        <div class="w-full md:w-64 bg-white shadow-md">
+            <div class="p-6">
+                <button class="mb-4 bg-green-100 text-green-700 px-2 py-1 rounded-md" onclick="toggleVisibility()">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <div id="toggleField">
+                    <nav class="space-y-2">
+                        <a class="flex items-center p-2 text-green-700 bg-green-100 rounded-md" href="#">
+                            <i class="fas fa-tachometer-alt mr-3"></i>
+                            Home
+                        </a>
+                        <a class="flex items-center p-2 text-gray-700 hover:bg-gray-100 rounded-md" href="#">
+                            <i class="fas fa-exchange-alt mr-3"></i>
+                            My Documents
+                            <span class="ml-auto bg-green-500 text-white text-xs font-semibold px-2 py-1 rounded-full">5</span>
+                        </a>
+                        <a class="flex items-center p-2 text-gray-700 hover:bg-gray-100 rounded-md" href="#">
+                            <i class="fas fa-wallet mr-3"></i>
+                            Drafts
+                        </a>
+                        <a class="flex items-center p-2 text-gray-700 hover:bg-gray-100 rounded-md" href="#">
+                            <i class="fas fa-chart-line mr-3"></i>
+                            Settings
+                        </a>
+                        <a class="flex items-center p-2 text-gray-700 hover:bg-gray-100 rounded-md" href="#">
+                            <i class="fas fa-chart-pie mr-3"></i>
+                            Product Updates
+                        </a>
+                    </nav>
+                </div>
+            </div>
+        </div>
+        <!-- Main Content -->
+        <div class="flex-1 p-6">
+            <!-- Header -->
+            <div class="flex flex-col md:flex-row justify-between items-center mb-6">
+                <div class="flex items-center bg-white p-2 rounded-md shadow-md w-full md:w-1/2 mb-4 md:mb-0">
+                    <input class="w-full px-4 py-2 text-gray-700 focus:outline-none" placeholder="Search Anything" type="text"/>
+                    <i class="fas fa-search text-gray-500"></i>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <div class="flex items-center space-x-2">
+                        <img alt="User Avatar" class="w-10 h-10 rounded-full" height="40" src="https://randomuser.me/api/portraits/men/1.jpg" width="40"/>
+                        <div>
+                            <p class="text-gray-700 font-semibold">Kushtrim Morina</p>
+                            <p class="text-gray-500 text-sm">Signify</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <i class="fas fa-bell text-gray-500"></i>
+                        <i class="fas fa-cog text-gray-500"></i>
+                    </div>
+                </div>
+            </div>
+            <!-- Banner -->
+            <div class="bg-green-100 p-6 rounded-md shadow-md flex flex-col items-center justify-center mb-6">
+                <div class="text-center">
+                    <p class="text-2xl font-bold mb-4">Lets sign a Document together</p>
+                    <button class="bg-green-700 text-white px-4 py-2 rounded-md">SIGN</button>
+                </div>
+            </div>
+            <!-- Dashboard Cards -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div class="bg-white p-4 rounded-md shadow-md">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <p class="text-gray-500">Yet To Sign</p>
+                            <p class="text-2xl font-semibold">4</p>
+                        </div>
+                        <i class="fas fa-arrow-right text-gray-500"></i>
+                    </div>
+                </div>
+                <div class="bg-white p-4 rounded-md shadow-md">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <p class="text-gray-500">Yet To Review</p>
+                            <p class="text-2xl font-semibold">0</p>
+                        </div>
+                        <i class="fas fa-arrow-right text-gray-500"></i>
+                    </div>
+                </div>
+                <div class="bg-white p-4 rounded-md shadow-md">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <p class="text-gray-500">Pending</p>
+                            <p class="text-2xl font-semibold">5</p>
+                        </div>
+                        <i class="fas fa-arrow-right text-gray-500"></i>
+                    </div>
+                </div>
+                <div class="bg-white p-4 rounded-md shadow-md">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <p class="text-gray-500">Completed</p>
+                            <p class="text-2xl font-semibold">3</p>
+                        </div>
+                        <i class="fas fa-arrow-right text-gray-500"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
