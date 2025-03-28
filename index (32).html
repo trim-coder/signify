@@ -1,125 +1,1562 @@
+<!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="utf-8"/>
-    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-    <title>Dashboard</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, minimum-scale=1.0">
+    <title>DocSign - Document Preparation</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" rel="stylesheet"/>
-    <script>
-        function toggleVisibility() {
-            const element = document.getElementById('toggleField');
-            if (element.style.display === 'none') {
-                element.style.display = 'block';
-            } else {
-                element.style.display = 'none';
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #4F46E5;
+            --primary-light: #EEF2FF;
+            --secondary: #10B981;
+            --dark: #1F2937;
+            --light: #F9FAFB;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        .draggable {
+            cursor: grab;
+            touch-action: none;
+        }
+        
+        .draggable:active {
+            cursor: grabbing;
+        }
+        
+        .droppable {
+            position: relative;
+            touch-action: none;
+        }
+        
+        .placed-item {
+            position: absolute;
+            cursor: pointer;
+            z-index: 10;
+            touch-action: none;
+        }
+        
+        .signature-style {
+            font-family: 'Dancing Script', cursive;
+            font-size: 24px;
+            font-weight: bold;
+            color: black;
+        }
+        
+        .signature-pad {
+            border: 1px solid #d3d3d3;
+            border-radius: 8px;
+            width: 100%;
+            height: 150px;
+            touch-action: none;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            z-index: 1000;
+            overflow-y: auto;
+        }
+        
+        .modal-content {
+            background: white;
+            margin: 2rem auto;
+            width: 95%;
+            max-width: 500px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            animation: modalFadeIn 0.3s ease-out;
+        }
+        
+        @keyframes modalFadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .mobile-bottom-nav {
+            display: none;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+            z-index: 100;
+            padding: 8px 0;
+            overflow-x: auto;
+            white-space: nowrap;
+            scrollbar-width: none;
+        }
+        
+        .mobile-bottom-nav::-webkit-scrollbar {
+            display: none;
+        }
+        
+        .nav-icon {
+            display: inline-block;
+            padding: 8px 12px;
+            text-align: center;
+            color: #6B7280;
+            min-width: 60px;
+        }
+        
+        .nav-icon.active {
+            color: var(--primary);
+        }
+        
+        .nav-icon i {
+            font-size: 1.2rem;
+            margin-bottom: 2px;
+        }
+        
+        .nav-icon span {
+            display: block;
+            font-size: 0.7rem;
+        }
+        
+        @media (max-width: 768px) {
+            .mobile-bottom-nav {
+                display: flex;
+                justify-content: space-around;
+            }
+            
+            .desktop-only {
+                display: none !important;
+            }
+            
+            .mobile-collapsible {
+                max-height: 0;
+                overflow: hidden;
+                transition: max-height 0.3s ease-out;
+            }
+            
+            .mobile-collapsible.active {
+                max-height: 500px;
             }
         }
-    </script>
+        
+        @media (min-width: 769px) {
+            .mobile-only {
+                display: none !important;
+            }
+        }
+        
+        #document-viewer {
+            position: relative;
+            background-color: white;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            transform-origin: 0 0;
+            transition: transform 0.25s ease;
+        }
+        
+        .touch-scroll {
+            -webkit-overflow-scrolling: touch;
+        }
+    </style>
+    <!-- PDF.js Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.11.338/pdf.min.js"></script>
+    <!-- Mammoth.js Library for Word Documents -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.4.8/mammoth.browser.min.js"></script>
+    <!-- html2canvas Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <!-- jsPDF Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
-<body class="bg-gray-100 font-sans antialiased">
-    <div class="flex flex-col md:flex-row h-screen">
-        <!-- Sidebar -->
-        <div class="w-full md:w-64 bg-white shadow-md">
-            <div class="p-6">
-                <button class="mb-4 bg-green-100 text-green-700 px-2 py-1 rounded-md" onclick="toggleVisibility()">
-                    <i class="fas fa-bars"></i>
-                </button>
-                <div id="toggleField">
-                    <nav class="space-y-2">
-                        <a class="flex items-center p-2 text-green-700 bg-green-100 rounded-md" href="#">
-                            <i class="fas fa-tachometer-alt mr-3"></i>
-                            Home
-                        </a>
-                        <a class="flex items-center p-2 text-gray-700 hover:bg-gray-100 rounded-md" href="#">
-                            <i class="fas fa-exchange-alt mr-3"></i>
-                            My Documents
-                            <span class="ml-auto bg-green-500 text-white text-xs font-semibold px-2 py-1 rounded-full">5</span>
-                        </a>
-                        <a class="flex items-center p-2 text-gray-700 hover:bg-gray-100 rounded-md" href="#">
-                            <i class="fas fa-wallet mr-3"></i>
-                            Drafts
-                        </a>
-                        <a class="flex items-center p-2 text-gray-700 hover:bg-gray-100 rounded-md" href="#">
-                            <i class="fas fa-chart-line mr-3"></i>
-                            Settings
-                        </a>
-                        <a class="flex items-center p-2 text-gray-700 hover:bg-gray-100 rounded-md" href="#">
-                            <i class="fas fa-chart-pie mr-3"></i>
-                            Product Updates
-                        </a>
-                    </nav>
+<body class="bg-gray-50">
+    <!-- Mobile Header -->
+    <header class="mobile-only bg-white shadow-sm py-3 px-4 flex items-center justify-between fixed top-0 left-0 right-0 z-50">
+        <button id="mobile-menu-btn" class="text-gray-600">
+            <i class="fas fa-bars text-xl"></i>
+        </button>
+        <h1 class="text-lg font-semibold text-gray-800">DocSign</h1>
+        <div class="w-8"></div> <!-- Spacer for balance -->
+    </header>
+
+    <!-- Mobile Side Menu -->
+    <div id="mobile-menu" class="mobile-only fixed inset-0 bg-white z-50 transform -translate-x-full transition-transform duration-300">
+        <div class="p-4 border-b border-gray-200 flex justify-between items-center">
+            <h2 class="text-xl font-bold text-gray-800">Menu</h2>
+            <button id="close-mobile-menu" class="text-gray-500">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+        </div>
+        <nav class="p-4">
+            <ul class="space-y-4">
+                <li><a href="#" class="block py-2 text-gray-700 font-medium">Home</a></li>
+                <li><a href="#" class="block py-2 text-gray-700 font-medium">Documents</a></li>
+                <li><a href="#" class="block py-2 text-gray-700 font-medium">Templates</a></li>
+                <li><a href="#" class="block py-2 text-gray-700 font-medium">Settings</a></li>
+                <li><a href="#" class="block py-2 text-gray-700 font-medium">Help</a></li>
+            </ul>
+        </nav>
+    </div>
+
+    <!-- Document Details Section -->
+    <div id="document-details" class="max-w-4xl mx-auto p-4 md:p-6 mt-16 md:mt-0">
+        <!-- Progress Steps - Mobile Version -->
+        <div class="mobile-only mb-6 bg-white p-4 rounded-lg shadow-sm">
+            <div class="flex items-center justify-between">
+                <div class="flex-1 text-center">
+                    <div class="w-8 h-8 mx-auto flex items-center justify-center rounded-full bg-indigo-600 text-white text-sm font-medium">
+                        1
+                    </div>
+                    <p class="mt-1 text-xs text-indigo-600 font-medium">Details</p>
+                </div>
+                <div class="flex-1">
+                    <div class="h-1 mx-2 bg-gray-200 relative top-4"></div>
+                </div>
+                <div class="flex-1 text-center">
+                    <div class="w-8 h-8 mx-auto flex items-center justify-center rounded-full bg-gray-200 text-gray-600 text-sm font-medium">
+                        2
+                    </div>
+                    <p class="mt-1 text-xs text-gray-500">Add</p>
+                </div>
+                <div class="flex-1">
+                    <div class="h-1 mx-2 bg-gray-200 relative top-4"></div>
+                </div>
+                <div class="flex-1 text-center">
+                    <div class="w-8 h-8 mx-auto flex items-center justify-center rounded-full bg-gray-200 text-gray-600 text-sm font-medium">
+                        3
+                    </div>
+                    <p class="mt-1 text-xs text-gray-500">Prepare</p>
                 </div>
             </div>
         </div>
-        <!-- Main Content -->
-        <div class="flex-1 p-6">
-            <!-- Header -->
-            <div class="flex flex-col md:flex-row justify-between items-center mb-6">
-                <div class="flex items-center bg-white p-2 rounded-md shadow-md w-full md:w-1/2 mb-4 md:mb-0">
-                    <input class="w-full px-4 py-2 text-gray-700 focus:outline-none" placeholder="Search Anything" type="text"/>
-                    <i class="fas fa-search text-gray-500"></i>
-                </div>
-                <div class="flex items-center space-x-4">
-                    <div class="flex items-center space-x-2">
-                        <img alt="User Avatar" class="w-10 h-10 rounded-full" height="40" src="https://randomuser.me/api/portraits/men/1.jpg" width="40"/>
-                        <div>
-                            <p class="text-gray-700 font-semibold">Kushtrim Morina</p>
-                            <p class="text-gray-500 text-sm">Signify</p>
-                        </div>
+
+        <!-- Progress Steps - Desktop Version -->
+        <div class="desktop-only flex items-center justify-between mb-8">
+            <div class="flex items-center space-x-4 md:space-x-6">
+                <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition">
+                    Back
+                </button>
+                <div class="flex items-center text-indigo-600">
+                    <div class="w-8 h-8 flex items-center justify-center rounded-full bg-indigo-600 text-white font-medium">
+                        1
                     </div>
-                    <div class="flex items-center space-x-2">
-                        <i class="fas fa-bell text-gray-500"></i>
-                        <i class="fas fa-cog text-gray-500"></i>
+                    <span class="ml-2 font-medium">
+                        Document Details
+                    </span>
+                </div>
+                <div class="w-8 h-0.5 bg-gray-300 mx-2 md:mx-6"></div>
+                <div class="flex items-center text-indigo-600">
+                    <div class="w-8 h-8 flex items-center justify-center rounded-full bg-indigo-600 text-white font-medium">
+                        2
+                    </div>
+                    <span class="ml-2 font-medium">
+                        Add Fields
+                    </span>
+                </div>
+                <div class="w-8 h-0.5 bg-gray-300 mx-2 md:mx-6"></div>
+                <div class="flex items-center text-gray-400">
+                    <div class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-200 font-medium">
+                        3
+                    </div>
+                    <span class="ml-2">
+                        Prepare
+                    </span>
+                </div>
+            </div>
+            <div class="flex items-center space-x-4">
+                <button class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition" onclick="nextPage()">
+                    Next
+                </button>
+            </div>
+        </div>
+
+        <!-- Upload Document Section -->
+        <div class="bg-white p-4 md:p-6 rounded-xl shadow-sm mb-6">
+            <div class="border-2 border-dashed border-gray-300 p-4 md:p-6 rounded-lg text-center" 
+                 ondragover="handleDragOver(event)" 
+                 ondrop="handleDrop(event)"
+                 id="upload-area">
+                <i class="fas fa-cloud-upload-alt text-3xl text-gray-400 mb-3"></i>
+                <p class="text-gray-500 mb-3 text-sm md:text-base">
+                    PDF or DOC/DOCX (maximum 200 MB in total per process for multiple documents)
+                </p>
+                <input class="hidden" id="file-upload" onchange="handleFileUpload(event)" type="file" accept=".pdf,.doc,.docx,image/*"/>
+                <button class="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition text-sm md:text-base"
+                        onclick="document.getElementById('file-upload').click()">
+                    <i class="fas fa-upload mr-2"></i>Upload From Device
+                </button>
+            </div>
+        </div>
+
+        <!-- Document Name Input -->
+        <div class="mb-6">
+            <label class="block text-gray-700 mb-2 font-medium" for="document-name">
+                Name of Document
+            </label>
+            <input class="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition"
+                   id="document-name" 
+                   placeholder="Enter contract name" 
+                   type="text"/>
+        </div>
+
+        <!-- Signature Type Section -->
+        <div class="mb-6">
+            <label class="block text-gray-700 mb-2 font-medium" for="signature-type">
+                Signature Type
+            </label>
+            <div class="grid grid-cols-3 gap-2">
+                <button class="signature-button bg-indigo-100 text-indigo-600 px-4 py-3 rounded-lg text-sm md:text-base"
+                        onclick="selectButton(event)">
+                    Simple
+                </button>
+                <button class="signature-button bg-gray-100 text-gray-600 px-4 py-3 rounded-lg text-sm md:text-base"
+                        onclick="showUnavailableMessage('Advanced Signature Type is not available on free membership')">
+                    Advanced
+                </button>
+                <button class="signature-button bg-gray-100 text-gray-600 px-4 py-3 rounded-lg text-sm md:text-base"
+                        onclick="showUnavailableMessage('Qualified Signature Type is not available on free membership')">
+                    Qualified
+                </button>
+            </div>
+            <div class="mt-2 text-red-500 text-sm" id="unavailable-message"></div>
+        </div>
+
+        <!-- Recipients Section -->
+        <div class="bg-white p-4 md:p-6 rounded-xl shadow-sm">
+            <label class="block text-gray-700 mb-2 font-medium" for="recipients">
+                Recipients
+            </label>
+            <div class="flex flex-col md:flex-row items-stretch md:items-center gap-2">
+                <input class="flex-1 border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition"
+                       id="recipients" 
+                       onkeypress="addRecipient(event)" 
+                       placeholder="Add Signatory by Email" 
+                       type="email"
+                       inputmode="email"/>
+                <button class="bg-gray-100 text-gray-700 p-3 rounded-lg hover:bg-gray-200 transition md:hidden"
+                        onclick="document.getElementById('recipients').focus()">
+                    <i class="fas fa-plus"></i>
+                </button>
+                <button class="bg-gray-100 text-gray-700 p-3 rounded-lg hover:bg-gray-200 transition hidden md:block">
+                    <i class="fas fa-search"></i>
+                </button>
+                <button class="bg-gray-100 text-gray-700 p-3 rounded-lg hover:bg-gray-200 transition whitespace-nowrap hidden md:block">
+                    <i class="fas fa-users mr-1"></i>
+                    Add Group
+                </button>
+            </div>
+            <div class="mt-2 text-red-500 text-sm" id="email-error-message"></div>
+            <div class="mt-4 space-y-2" id="recipient-list"></div>
+        </div>
+    </div>
+
+    <!-- Document Preparation Section -->
+    <div id="document-preparation" class="hidden h-screen flex flex-col">
+        <!-- Mobile Top Bar -->
+        <div class="mobile-only bg-white p-3 border-b border-gray-200 flex items-center justify-between">
+            <button class="text-gray-600" onclick="backToDetails()">
+                <i class="fas fa-arrow-left"></i>
+            </button>
+            <h2 class="text-lg font-semibold text-gray-800">Prepare Document</h2>
+            <div class="w-8"></div>
+        </div>
+
+        <!-- Main Content Area -->
+        <div class="flex-1 flex flex-col md:flex-row overflow-hidden">
+            <!-- Left Sidebar - Mobile Collapsible -->
+            <div class="mobile-only bg-white border-b border-gray-200">
+                <button class="w-full p-3 flex items-center justify-between font-medium text-gray-700"
+                        onclick="toggleMobileCollapse('fields-collapse')">
+                    <span>Fields</span>
+                    <i class="fas fa-chevron-down transition-transform duration-300" id="fields-collapse-icon"></i>
+                </button>
+                <div class="mobile-collapsible" id="fields-collapse">
+                    <div class="p-3 grid grid-cols-2 gap-2">
+                        <button class="bg-indigo-100 text-indigo-700 py-2 px-3 rounded-lg flex items-center justify-center draggable" 
+                                draggable="true" 
+                                ondragstart="drag(event)" 
+                                data-type="signature">
+                            <i class="fas fa-signature mr-2"></i> Signature
+                        </button>
+                        <button class="bg-indigo-100 text-indigo-700 py-2 px-3 rounded-lg flex items-center justify-center draggable" 
+                                draggable="true" 
+                                ondragstart="drag(event)" 
+                                data-type="name">
+                            <i class="fas fa-user mr-2"></i> Name
+                        </button>
+                        <button class="bg-indigo-100 text-indigo-700 py-2 px-3 rounded-lg flex items-center justify-center draggable" 
+                                draggable="true" 
+                                ondragstart="drag(event)" 
+                                data-type="date">
+                            <i class="fas fa-calendar-alt mr-2"></i> Date
+                        </button>
+                        <button class="bg-indigo-100 text-indigo-700 py-2 px-3 rounded-lg flex items-center justify-center draggable" 
+                                draggable="true" 
+                                ondragstart="drag(event)" 
+                                data-type="ip-location">
+                            <i class="fas fa-map-marker-alt mr-2"></i> Location
+                        </button>
+                        <button class="bg-indigo-100 text-indigo-700 py-2 px-3 rounded-lg flex items-center justify-center draggable col-span-2" 
+                                draggable="true" 
+                                ondragstart="drag(event)" 
+                                data-type="textbox">
+                            <i class="fas fa-text-width mr-2"></i> Textbox
+                        </button>
                     </div>
                 </div>
             </div>
-            <!-- Banner -->
-            <div class="bg-green-100 p-6 rounded-md shadow-md flex flex-col items-center justify-center mb-6">
-                <div class="text-center">
-                    <p class="text-2xl font-bold mb-4">Lets sign a Document together</p>
-                    <button class="bg-green-700 text-white px-4 py-2 rounded-md">SIGN</button>
+
+            <!-- Left Sidebar - Desktop -->
+            <div class="desktop-only w-64 bg-white p-4 border-r border-gray-200 overflow-y-auto">
+                <div class="flex items-center mb-6">
+                    <div class="w-10 h-10 bg-indigo-600 text-white rounded-full flex items-center justify-center">
+                        <span class="text-xl">K</span>
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-sm font-semibold">Signatory</p>
+                        <p class="text-xs text-gray-500">kim@example.com</p>
+                    </div>
+                </div>
+                
+                <div class="mb-6">
+                    <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">BASIC FIELDS</p>
+                    <div class="space-y-2">
+                        <button class="w-full bg-indigo-100 text-indigo-700 py-2 px-4 rounded-lg flex items-center draggable" 
+                                draggable="true" 
+                                ondragstart="drag(event)" 
+                                data-type="signature">
+                            <i class="fas fa-signature mr-3"></i> Signature
+                        </button>
+                        <button class="w-full bg-indigo-100 text-indigo-700 py-2 px-4 rounded-lg flex items-center draggable" 
+                                draggable="true" 
+                                ondragstart="drag(event)" 
+                                data-type="name">
+                            <i class="fas fa-user mr-3"></i> Name
+                        </button>
+                        <button class="w-full bg-indigo-100 text-indigo-700 py-2 px-4 rounded-lg flex items-center draggable" 
+                                draggable="true" 
+                                ondragstart="drag(event)" 
+                                data-type="date">
+                            <i class="fas fa-calendar-alt mr-3"></i> Date
+                        </button>
+                        <button class="w-full bg-indigo-100 text-indigo-700 py-2 px-4 rounded-lg flex items-center draggable" 
+                                draggable="true" 
+                                ondragstart="drag(event)" 
+                                data-type="ip-location">
+                            <i class="fas fa-map-marker-alt mr-3"></i> IP Location
+                        </button>
+                    </div>
+                </div>
+                
+                <div>
+                    <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">BLOCKS</p>
+                    <div class="space-y-2">
+                        <button class="w-full bg-indigo-100 text-indigo-700 py-2 px-4 rounded-lg flex items-center draggable" 
+                                draggable="true" 
+                                ondragstart="drag(event)" 
+                                data-type="textbox">
+                            <i class="fas fa-text-width mr-3"></i> Textbox
+                        </button>
+                    </div>
                 </div>
             </div>
-            <!-- Dashboard Cards -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div class="bg-white p-4 rounded-md shadow-md">
-                    <div class="flex justify-between items-center">
-                        <div>
-                            <p class="text-gray-500">Yet To Sign</p>
-                            <p class="text-2xl font-semibold">4</p>
+
+            <!-- Main Document Area -->
+            <div class="flex-1 flex flex-col bg-gray-100 overflow-hidden">
+                <!-- Top Bar - Desktop -->
+                <div class="desktop-only flex items-center justify-between bg-white p-3 border-b border-gray-200">
+                    <div class="flex items-center space-x-3">
+                        <button class="text-gray-500 hover:text-gray-700 p-2 rounded-full hover:bg-gray-100">
+                            <i class="fas fa-arrow-left"></i>
+                        </button>
+                        <button class="text-gray-500 hover:text-gray-700 p-2 rounded-full hover:bg-gray-100">
+                            <i class="fas fa-arrow-right"></i>
+                        </button>
+                        <button class="text-gray-500 hover:text-gray-700 p-2 rounded-full hover:bg-gray-100">
+                            <i class="fas fa-file-alt"></i>
+                        </button>
+                        <div class="flex items-center space-x-1">
+                            <button class="text-gray-500 hover:text-gray-700 p-2 rounded-full hover:bg-gray-100" onclick="zoomOut()">
+                                <i class="fas fa-search-minus"></i>
+                            </button>
+                            <select class="border border-gray-300 rounded-lg px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                                    id="zoom-level" 
+                                    onchange="changeZoomLevel(event)">
+                                <option value="1">100%</option>
+                                <option value="0.75">75%</option>
+                                <option value="0.5">50%</option>
+                            </select>
+                            <button class="text-gray-500 hover:text-gray-700 p-2 rounded-full hover:bg-gray-100" onclick="zoomIn()">
+                                <i class="fas fa-search-plus"></i>
+                            </button>
                         </div>
-                        <i class="fas fa-arrow-right text-gray-500"></i>
+                    </div>
+                    <div class="space-x-2">
+                        <button class="bg-indigo-600 text-white px-3 py-2 rounded-lg text-sm hover:bg-indigo-700 transition"
+                                onclick="saveDocumentAsImage()">
+                            Save as Image
+                        </button>
+                        <button class="bg-indigo-600 text-white px-3 py-2 rounded-lg text-sm hover:bg-indigo-700 transition"
+                                onclick="saveDocumentAsPDF()">
+                            Save as PDF
+                        </button>
+                        <button class="bg-green-600 text-white px-3 py-2 rounded-lg text-sm hover:bg-green-700 transition">
+                            Send
+                        </button>
                     </div>
                 </div>
-                <div class="bg-white p-4 rounded-md shadow-md">
-                    <div class="flex justify-between items-center">
-                        <div>
-                            <p class="text-gray-500">Yet To Review</p>
-                            <p class="text-2xl font-semibold">0</p>
-                        </div>
-                        <i class="fas fa-arrow-right text-gray-500"></i>
+
+                <!-- Document Viewer -->
+                <div class="flex-1 flex justify-center items-center overflow-auto touch-scroll p-4">
+                    <div id="document-viewer" 
+                         class="bg-white w-full h-full max-w-3xl max-h-[calc(100%-2rem)] border border-gray-300 rounded-lg shadow-sm flex items-center justify-center droppable" 
+                         ondragover="allowDrop(event)" 
+                         ondrop="drop(event)"
+                         ontouchstart="handleTouchStart(event)"
+                         ontouchmove="handleTouchMove(event)"
+                         ontouchend="handleTouchEnd(event)">
+                        <p class="text-gray-400 text-center p-6">
+                            <i class="fas fa-file-upload text-4xl mb-3"></i><br>
+                            Drag and drop elements or a file to start editing your document
+                        </p>
                     </div>
                 </div>
-                <div class="bg-white p-4 rounded-md shadow-md">
-                    <div class="flex justify-between items-center">
-                        <div>
-                            <p class="text-gray-500">Pending</p>
-                            <p class="text-2xl font-semibold">5</p>
+            </div>
+
+            <!-- Right Sidebar - Mobile Collapsible -->
+            <div class="mobile-only bg-white border-t border-gray-200">
+                <button class="w-full p-3 flex items-center justify-between font-medium text-gray-700"
+                        onclick="toggleMobileCollapse('properties-collapse')">
+                    <span>Properties</span>
+                    <i class="fas fa-chevron-down transition-transform duration-300" id="properties-collapse-icon"></i>
+                </button>
+                <div class="mobile-collapsible" id="properties-collapse">
+                    <div class="p-3">
+                        <div class="mb-4">
+                            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">RECIPIENT</p>
+                            <div class="bg-gray-50 p-3 rounded-lg">
+                                <p class="text-sm font-medium">Kim Johnson</p>
+                                <p class="text-xs text-gray-500">kim@example.com</p>
+                            </div>
                         </div>
-                        <i class="fas fa-arrow-right text-gray-500"></i>
+                        <div>
+                            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">ACTIONS</p>
+                            <div class="grid grid-cols-2 gap-2">
+                                <button class="bg-gray-100 text-gray-700 py-2 px-3 rounded-lg flex items-center justify-center text-sm">
+                                    <i class="fas fa-copy mr-2"></i> Duplicate
+                                </button>
+                                <button class="bg-gray-100 text-gray-700 py-2 px-3 rounded-lg flex items-center justify-center text-sm" 
+                                        id="delete-button">
+                                    <i class="fas fa-trash-alt mr-2"></i> Delete
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <div class="bg-white p-4 rounded-md shadow-md">
-                    <div class="flex justify-between items-center">
-                        <div>
-                            <p class="text-gray-500">Completed</p>
-                            <p class="text-2xl font-semibold">3</p>
-                        </div>
-                        <i class="fas fa-arrow-right text-gray-500"></i>
+            </div>
+
+            <!-- Right Sidebar - Desktop -->
+            <div class="desktop-only w-64 bg-white p-4 border-l border-gray-200 overflow-y-auto">
+                <div class="flex items-center justify-between mb-4">
+                    <p class="text-sm font-semibold text-gray-700">Signature</p>
+                    <button class="text-gray-500 hover:text-gray-700">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                
+                <div class="mb-6">
+                    <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">RECIPIENT</p>
+                    <div class="bg-gray-50 p-3 rounded-lg">
+                        <p class="text-sm font-medium">Kim Johnson</p>
+                        <p class="text-xs text-gray-500">kim@example.com</p>
                     </div>
+                </div>
+                
+                <div>
+                    <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">ACTIONS</p>
+                    <div class="space-y-2">
+                        <button class="w-full bg-gray-100 text-gray-700 py-2 px-4 rounded-lg flex items-center text-sm hover:bg-gray-200 transition">
+                            <i class="fas fa-copy mr-3"></i> Duplicate
+                        </button>
+                        <button class="w-full bg-gray-100 text-gray-700 py-2 px-4 rounded-lg flex items-center text-sm hover:bg-gray-200 transition" 
+                                id="delete-button">
+                            <i class="fas fa-trash-alt mr-3"></i> Delete
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mobile Bottom Navigation -->
+        <div class="mobile-bottom-nav">
+            <div class="nav-icon" onclick="backToDetails()">
+                <i class="fas fa-arrow-left"></i>
+                <span>Back</span>
+            </div>
+            <div class="nav-icon active" onclick="showFieldsPanel()">
+                <i class="fas fa-plus-circle"></i>
+                <span>Fields</span>
+            </div>
+            <div class="nav-icon" onclick="showPropertiesPanel()">
+                <i class="fas fa-sliders-h"></i>
+                <span>Properties</span>
+            </div>
+            <div class="nav-icon" onclick="zoomIn()">
+                <i class="fas fa-search-plus"></i>
+                <span>Zoom In</span>
+            </div>
+            <div class="nav-icon" onclick="zoomOut()">
+                <i class="fas fa-search-minus"></i>
+                <span>Zoom Out</span>
+            </div>
+            <div class="nav-icon" onclick="saveDocumentAsPDF()">
+                <i class="fas fa-save"></i>
+                <span>Save</span>
+            </div>
+            <div class="nav-icon" onclick="nextPage()">
+                <i class="fas fa-arrow-right"></i>
+                <span>Next</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Signature Modal -->
+    <div id="signature-modal" class="modal">
+        <div class="modal-content">
+            <div class="p-4">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-semibold text-gray-800">Create Signature</h2>
+                    <button class="text-gray-500 hover:text-gray-700" onclick="closeSignatureModal()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                
+                <div class="border-b border-gray-200 mb-4">
+                    <ul class="flex">
+                        <li class="text-indigo-600 border-b-2 border-indigo-600 pb-2 px-4 font-medium">Draw</li>
+                    </ul>
+                </div>
+                
+                <div class="border border-gray-300 rounded-lg mb-4 p-2">
+                    <canvas id="signature-pad" class="signature-pad"></canvas>
+                </div>
+                
+                <div class="flex justify-between">
+                    <button id="clear-signature-btn" class="bg-white text-indigo-600 border border-indigo-600 rounded-lg px-4 py-2 hover:bg-indigo-50 transition">
+                        CLEAR
+                    </button>
+                    <button class="bg-indigo-600 text-white rounded-lg px-4 py-2 hover:bg-indigo-700 transition" onclick="placeSignature()">
+                        PLACE
+                    </button>
                 </div>
             </div>
         </div>
     </div>
+
+    <!-- Name Modal -->
+    <div id="name-modal" class="modal">
+        <div class="modal-content">
+            <div class="p-4">
+                <div class="text-center border-b-2 border-gray-200 pb-3 mb-4">
+                    <h2 class="text-lg font-semibold text-indigo-600">Type</h2>
+                </div>
+                
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-medium mb-2" for="full-name">
+                        Your Full Name
+                    </label>
+                    <input class="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition" 
+                           id="full-name" 
+                           type="text" 
+                           placeholder="Enter your name">
+                </div>
+                
+                <div class="flex justify-between">
+                    <button class="bg-white text-indigo-600 border border-indigo-600 px-4 py-2 rounded-lg hover:bg-indigo-50 transition" 
+                            onclick="clearName()">
+                        Clear
+                    </button>
+                    <button class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition" 
+                            onclick="placeName()">
+                        Place
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Text Modal -->
+    <div id="text-modal" class="modal">
+        <div class="modal-content">
+            <div class="p-4">
+                <div class="flex items-center border-b border-gray-200 pb-3 mb-4">
+                    <h2 class="text-lg font-semibold text-indigo-600">Create Text</h2>
+                </div>
+                
+                <div class="border border-gray-300 rounded-lg mb-4">
+                    <textarea id="text-input" 
+                              class="w-full h-40 p-3 focus:outline-none focus:ring-1 focus:ring-indigo-500 rounded-lg" 
+                              placeholder="Add your text here..."></textarea>
+                </div>
+                
+                <div class="flex justify-between items-center">
+                    <button class="text-indigo-600 hover:text-indigo-800 transition" onclick="clearText()">
+                        Clear
+                    </button>
+                    <button class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition" 
+                            onclick="placeText()">
+                        Place
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize jsPDF
+        const { jsPDF } = window.jspdf;
+        
+        // Mobile menu functionality
+        document.getElementById('mobile-menu-btn').addEventListener('click', function() {
+            document.getElementById('mobile-menu').classList.remove('-translate-x-full');
+        });
+        
+        document.getElementById('close-mobile-menu').addEventListener('click', function() {
+            document.getElementById('mobile-menu').classList.add('-translate-x-full');
+        });
+        
+        // Mobile collapsible panels
+        function toggleMobileCollapse(id) {
+            const panel = document.getElementById(id);
+            const icon = document.getElementById(id + '-icon');
+            
+            panel.classList.toggle('active');
+            icon.classList.toggle('transform');
+            icon.classList.toggle('rotate-180');
+        }
+        
+        function showFieldsPanel() {
+            document.getElementById('fields-collapse').classList.add('active');
+            document.getElementById('properties-collapse').classList.remove('active');
+            document.getElementById('properties-collapse-icon').classList.remove('rotate-180');
+            
+            // Scroll to fields panel if needed
+            const fieldsPanel = document.getElementById('fields-collapse');
+            fieldsPanel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+        
+        function showPropertiesPanel() {
+            document.getElementById('properties-collapse').classList.add('active');
+            document.getElementById('fields-collapse').classList.remove('active');
+            document.getElementById('fields-collapse-icon').classList.remove('rotate-180');
+            
+            // Scroll to properties panel if needed
+            const propsPanel = document.getElementById('properties-collapse');
+            propsPanel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+        
+        // Document Details Functions
+        function handleFileUpload(event) {
+            const fileInput = event.target;
+            const fileName = fileInput.files[0].name;
+            document.getElementById('document-name').value = fileName;
+            const file = fileInput.files[0];
+            const reader = new FileReader();
+            
+            // Visual feedback for upload
+            const uploadArea = document.getElementById('upload-area');
+            uploadArea.classList.add('border-indigo-500', 'bg-indigo-50');
+            uploadArea.innerHTML = `
+                <div class="flex flex-col items-center">
+                    <i class="fas fa-spinner fa-spin text-indigo-500 text-3xl mb-3"></i>
+                    <p class="text-gray-700 font-medium">Uploading ${fileName}...</p>
+                    <p class="text-gray-500 text-sm mt-1">Please wait</p>
+                </div>
+            `;
+            
+            reader.onload = function(e) {
+                localStorage.setItem('uploadedFile', e.target.result);
+                localStorage.setItem('uploadedFileName', fileName);
+                localStorage.setItem('uploadedFileType', file.type);
+                
+                // Update upload area with success state
+                uploadArea.classList.remove('border-indigo-500', 'bg-indigo-50');
+                uploadArea.classList.add('border-green-500', 'bg-green-50');
+                uploadArea.innerHTML = `
+                    <div class="flex flex-col items-center">
+                        <i class="fas fa-check-circle text-green-500 text-3xl mb-3"></i>
+                        <p class="text-gray-700 font-medium">${fileName}</p>
+                        <p class="text-gray-500 text-sm mt-1">Upload successful</p>
+                    </div>
+                `;
+                
+                // Revert after 3 seconds
+                setTimeout(() => {
+                    uploadArea.classList.remove('border-green-500', 'bg-green-50');
+                    uploadArea.innerHTML = `
+                        <i class="fas fa-cloud-upload-alt text-3xl text-gray-400 mb-3"></i>
+                        <p class="text-gray-500 mb-3 text-sm md:text-base">
+                            PDF or DOC/DOCX (maximum 200 MB in total per process for multiple documents)
+                        </p>
+                        <button class="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition text-sm md:text-base"
+                                onclick="document.getElementById('file-upload').click()">
+                            <i class="fas fa-upload mr-2"></i>Upload From Device
+                        </button>
+                    `;
+                }, 3000);
+            };
+            
+            reader.readAsDataURL(file);
+        }
+
+        function selectButton(event) {
+            const buttons = document.querySelectorAll('.signature-button');
+            buttons.forEach(button => {
+                button.classList.remove('bg-indigo-100', 'text-indigo-600');
+                button.classList.add('bg-gray-100', 'text-gray-600');
+            });
+            event.target.classList.remove('bg-gray-100', 'text-gray-600');
+            event.target.classList.add('bg-indigo-100', 'text-indigo-600');
+            hideUnavailableMessage();
+        }
+
+        function addRecipient(event) {
+            if (event.key === 'Enter') {
+                const emailInput = event.target;
+                const email = emailInput.value.trim();
+                const recipientList = document.getElementById('recipient-list');
+                
+                // Simple email validation
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                
+                if (emailRegex.test(email)) {
+                    const recipientItem = document.createElement('div');
+                    recipientItem.className = 'bg-gray-100 p-3 rounded-lg flex justify-between items-center';
+                    
+                    recipientItem.innerHTML = `
+                        <div>
+                            <p class="text-sm font-medium">${email}</p>
+                            <p class="text-xs text-gray-500">Signer</p>
+                        </div>
+                        <button class="text-gray-400 hover:text-red-500" onclick="this.parentElement.remove()">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    `;
+                    
+                    recipientList.appendChild(recipientItem);
+                    emailInput.value = '';
+                    document.getElementById('email-error-message').textContent = '';
+                } else {
+                    const messageContainer = document.getElementById('email-error-message');
+                    messageContainer.textContent = "Please enter a valid email address";
+                    emailInput.focus();
+                }
+            }
+        }
+
+        function showUnavailableMessage(message) {
+            const messageContainer = document.getElementById('unavailable-message');
+            messageContainer.textContent = message;
+            
+            // Auto-hide after 5 seconds
+            setTimeout(() => {
+                messageContainer.textContent = '';
+            }, 5000);
+        }
+
+        function hideUnavailableMessage() {
+            document.getElementById('unavailable-message').textContent = "";
+        }
+
+        function handleDragOver(event) {
+            event.preventDefault();
+            event.stopPropagation();
+            event.dataTransfer.dropEffect = 'copy';
+            event.currentTarget.classList.add('border-indigo-500', 'bg-indigo-50');
+        }
+
+        function handleDrop(event) {
+            event.preventDefault();
+            event.stopPropagation();
+            event.currentTarget.classList.remove('border-indigo-500', 'bg-indigo-50');
+            
+            const files = event.dataTransfer.files;
+            if (files.length > 0) {
+                document.getElementById('file-upload').files = files;
+                handleFileUpload({ target: document.getElementById('file-upload') });
+            }
+        }
+
+        function nextPage() {
+            document.getElementById('document-details').classList.add('hidden');
+            document.getElementById('document-preparation').classList.remove('hidden');
+            
+            const uploadedFile = localStorage.getItem('uploadedFile');
+            const uploadedFileType = localStorage.getItem('uploadedFileType');
+            const documentViewer = document.getElementById('document-viewer');
+
+            if (uploadedFile) {
+                if (uploadedFileType === 'application/pdf') {
+                    renderPDF(uploadedFile, documentViewer);
+                } else if (uploadedFileType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+                    renderWordDocument(uploadedFile, documentViewer);
+                } else if (uploadedFileType.startsWith('image/')) {
+                    const img = document.createElement('img');
+                    img.src = uploadedFile;
+                    img.style.maxWidth = '100%';
+                    img.style.maxHeight = '100%';
+                    img.style.objectFit = 'contain';
+                    documentViewer.innerHTML = '';
+                    documentViewer.appendChild(img);
+                }
+            }
+            
+            // Initialize signature pad
+            initSignaturePad();
+        }
+        
+        function backToDetails() {
+            document.getElementById('document-preparation').classList.add('hidden');
+            document.getElementById('document-details').classList.remove('hidden');
+        }
+
+        // PDF Rendering Function
+        function renderPDF(file, container) {
+            // Set loading state
+            container.innerHTML = `
+                <div class="flex flex-col items-center justify-center p-6">
+                    <i class="fas fa-spinner fa-spin text-indigo-500 text-3xl mb-3"></i>
+                    <p class="text-gray-700">Loading PDF document...</p>
+                </div>
+            `;
+            
+            pdfjsLib.getDocument(file).promise.then(pdf => {
+                pdf.getPage(1).then(page => {
+                    const scale = 1.5;
+                    const viewport = page.getViewport({ scale });
+
+                    const canvas = document.createElement('canvas');
+                    const context = canvas.getContext('2d');
+                    canvas.height = viewport.height;
+                    canvas.width = viewport.width;
+
+                    container.innerHTML = '';
+                    container.appendChild(canvas);
+
+                    const renderContext = {
+                        canvasContext: context,
+                        viewport: viewport
+                    };
+                    
+                    page.render(renderContext).promise.then(() => {
+                        // Adjust canvas size to fit container
+                        const containerWidth = container.clientWidth;
+                        const scaleFactor = containerWidth / canvas.width;
+                        canvas.style.width = '100%';
+                        canvas.style.height = 'auto';
+                    });
+                });
+            }).catch(error => {
+                container.innerHTML = `
+                    <div class="flex flex-col items-center justify-center p-6 text-center text-red-500">
+                        <i class="fas fa-exclamation-circle text-3xl mb-3"></i>
+                        <p class="font-medium">Failed to load PDF</p>
+                        <p class="text-sm mt-1">${error.message}</p>
+                    </div>
+                `;
+            });
+        }
+
+        // Word Document Rendering Function
+        function renderWordDocument(file, container) {
+            container.innerHTML = `
+                <div class="flex flex-col items-center justify-center p-6">
+                    <i class="fas fa-spinner fa-spin text-indigo-500 text-3xl mb-3"></i>
+                    <p class="text-gray-700">Loading Word document...</p>
+                </div>
+            `;
+            
+            mammoth.convertToHtml({ arrayBuffer: file })
+                .then(result => {
+                    container.innerHTML = result.value;
+                })
+                .catch(error => {
+                    container.innerHTML = `
+                        <div class="flex flex-col items-center justify-center p-6 text-center text-red-500">
+                            <i class="fas fa-exclamation-circle text-3xl mb-3"></i>
+                            <p class="font-medium">Failed to load Word document</p>
+                            <p class="text-sm mt-1">${error.message}</p>
+                        </div>
+                    `;
+                });
+        }
+
+        // Document Preparation Functions
+        function allowDrop(event) {
+            event.preventDefault();
+        }
+
+        function drag(event) {
+            if (event.target.classList.contains('non-draggable')) {
+                event.preventDefault();
+                return;
+            }
+            event.dataTransfer.setData("text", event.target.getAttribute('data-type'));
+            
+            // Visual feedback for mobile
+            event.target.classList.add('bg-indigo-200');
+        }
+        
+        function handleTouchStart(event) {
+            // For mobile touch events
+            const touch = event.touches[0];
+            const element = document.elementFromPoint(touch.clientX, touch.clientY);
+            
+            if (element && element.classList.contains('draggable')) {
+                const type = element.getAttribute('data-type');
+                const newElement = createPlaceableElement(type, touch.clientX, touch.clientY);
+                document.getElementById('document-viewer').appendChild(newElement);
+                
+                // Store reference to the new element
+                currentlyDragging = newElement;
+                initialX = touch.clientX - newElement.getBoundingClientRect().left;
+                initialY = touch.clientY - newElement.getBoundingClientRect().top;
+                
+                // Prevent default to avoid scrolling
+                event.preventDefault();
+            }
+        }
+        
+        function handleTouchMove(event) {
+            if (currentlyDragging) {
+                const touch = event.touches[0];
+                const rect = document.getElementById('document-viewer').getBoundingClientRect();
+                
+                // Calculate new position
+                const x = touch.clientX - rect.left - initialX;
+                const y = touch.clientY - rect.top - initialY;
+                
+                // Apply new position
+                currentlyDragging.style.left = `${x}px`;
+                currentlyDragging.style.top = `${y}px`;
+                
+                event.preventDefault();
+            }
+        }
+        
+        function handleTouchEnd(event) {
+            if (currentlyDragging) {
+                // Reset dragging state
+                currentlyDragging = null;
+            }
+        }
+        
+        let currentlyDragging = null;
+        let initialX = 0;
+        let initialY = 0;
+
+        function drop(event) {
+            event.preventDefault();
+            const type = event.dataTransfer.getData("text");
+            const rect = event.currentTarget.getBoundingClientRect();
+            const x = event.clientX - rect.left;
+            const y = event.clientY - rect.top;
+            
+            const newElement = createPlaceableElement(type, x, y);
+            document.getElementById('document-viewer').appendChild(newElement);
+            
+            // Reset drag feedback
+            document.querySelectorAll('.draggable').forEach(el => {
+                el.classList.remove('bg-indigo-200');
+            });
+        }
+        
+        function createPlaceableElement(type, x, y) {
+            const newElement = document.createElement("div");
+            newElement.className = "placed-item bg-indigo-100 text-indigo-700 py-2 px-4 rounded-lg flex items-center shadow-sm";
+            newElement.style.position = "absolute";
+            newElement.style.left = `${x}px`;
+            newElement.style.top = `${y}px`;
+            newElement.setAttribute('data-type', type);
+            newElement.draggable = true;
+            
+            let iconClass, text;
+            switch (type) {
+                case 'signature':
+                    iconClass = 'fas fa-signature';
+                    text = 'Signature';
+                    break;
+                case 'name':
+                    iconClass = 'fas fa-user';
+                    text = 'Name';
+                    break;
+                case 'date':
+                    iconClass = 'fas fa-calendar-alt';
+                    text = 'Date';
+                    break;
+                case 'ip-location':
+                    iconClass = 'fas fa-map-marker-alt';
+                    text = 'IP Location';
+                    break;
+                case 'textbox':
+                    iconClass = 'fas fa-text-width';
+                    text = 'Textbox';
+                    break;
+            }
+
+            newElement.innerHTML = `<i class="${iconClass} mr-2"></i>${text}`;
+            newElement.onclick = function(e) {
+                e.stopPropagation();
+                performAction(this, type);
+            };
+            
+            // Make placed elements draggable
+            newElement.addEventListener('dragstart', function(e) {
+                e.dataTransfer.setData("text/plain", ""); // Required for Firefox
+                this.classList.add('dragging');
+            });
+            
+            newElement.addEventListener('dragend', function() {
+                this.classList.remove('dragging');
+            });
+            
+            return newElement;
+        }
+
+        function performAction(element, type) {
+            if (type === 'signature') {
+                openSignatureModal(element);
+            } else if (type === 'name') {
+                openNameModal(element);
+            } else if (type === 'textbox') {
+                openTextModal(element);
+            } else {
+                switch (type) {
+                    case 'date':
+                        const date = new Date().toLocaleDateString();
+                        element.innerHTML = `<i class="fas fa-calendar-alt mr-2"></i>${date}`;
+                        element.classList.add('non-draggable');
+                        break;
+                    case 'ip-location':
+                        // Show loading state
+                        element.innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i>Detecting...`;
+                        
+                        fetch('https://ipapi.co/json/')
+                            .then(response => response.json())
+                            .then(data => {
+                                element.innerHTML = `<i class="fas fa-map-marker-alt mr-2"></i>${data.city}, ${data.country_name}`;
+                                element.classList.add('non-draggable');
+                            })
+                            .catch(() => {
+                                element.innerHTML = `<i class="fas fa-map-marker-alt mr-2"></i>Location unavailable`;
+                                element.classList.add('non-draggable');
+                            });
+                        break;
+                }
+            }
+        }
+
+        // Signature Pad Functions
+        let signaturePadCtx = null;
+        let isDrawing = false;
+        let lastX = 0;
+        let lastY = 0;
+        let currentSignatureElement = null;
+        
+        function initSignaturePad() {
+            const canvas = document.getElementById('signature-pad');
+            signaturePadCtx = canvas.getContext('2d');
+            
+            // Set canvas size
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+            
+            // Style the drawing
+            signaturePadCtx.strokeStyle = '#000';
+            signaturePadCtx.lineWidth = 2;
+            signaturePadCtx.lineCap = 'round';
+            signaturePadCtx.lineJoin = 'round';
+            
+            // Mouse events
+            canvas.addEventListener('mousedown', startDrawing);
+            canvas.addEventListener('mousemove', draw);
+            canvas.addEventListener('mouseup', stopDrawing);
+            canvas.addEventListener('mouseout', stopDrawing);
+            
+            // Touch events
+            canvas.addEventListener('touchstart', handleTouchStartSignature);
+            canvas.addEventListener('touchmove', handleTouchMoveSignature);
+            canvas.addEventListener('touchend', stopDrawing);
+            
+            // Clear button
+            document.getElementById('clear-signature-btn').addEventListener('click', clearSignature);
+        }
+        
+        function startDrawing(e) {
+            isDrawing = true;
+            [lastX, lastY] = [e.offsetX, e.offsetY];
+        }
+        
+        function handleTouchStartSignature(e) {
+            if (e.touches.length === 1) {
+                const touch = e.touches[0];
+                const rect = e.target.getBoundingClientRect();
+                const offsetX = touch.clientX - rect.left;
+                const offsetY = touch.clientY - rect.top;
+                
+                isDrawing = true;
+                [lastX, lastY] = [offsetX, offsetY];
+                e.preventDefault();
+            }
+        }
+        
+        function handleTouchMoveSignature(e) {
+            if (isDrawing && e.touches.length === 1) {
+                const touch = e.touches[0];
+                const rect = e.target.getBoundingClientRect();
+                const offsetX = touch.clientX - rect.left;
+                const offsetY = touch.clientY - rect.top;
+                
+                draw({ offsetX, offsetY });
+                e.preventDefault();
+            }
+        }
+        
+        function draw(e) {
+            if (!isDrawing) return;
+            
+            signaturePadCtx.beginPath();
+            signaturePadCtx.moveTo(lastX, lastY);
+            signaturePadCtx.lineTo(e.offsetX, e.offsetY);
+            signaturePadCtx.stroke();
+            [lastX, lastY] = [e.offsetX, e.offsetY];
+        }
+        
+        function stopDrawing() {
+            isDrawing = false;
+        }
+        
+        function clearSignature() {
+            signaturePadCtx.clearRect(0, 0, 
+                document.getElementById('signature-pad').width, 
+                document.getElementById('signature-pad').height);
+        }
+
+        function openSignatureModal(element) {
+            currentSignatureElement = element;
+            document.getElementById('signature-modal').style.display = 'block';
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeSignatureModal() {
+            document.getElementById('signature-modal').style.display = 'none';
+            document.body.style.overflow = '';
+        }
+
+        function placeSignature() {
+            const canvas = document.getElementById('signature-pad');
+            const dataUrl = canvas.toDataURL();
+            
+            currentSignatureElement.innerHTML = `
+                <img src="${dataUrl}" alt="Signature" style="width: 120px; height: auto;">
+            `;
+            currentSignatureElement.classList.add('non-draggable');
+            clearSignature();
+            closeSignatureModal();
+        }
+
+        // Name Modal Functions
+        let currentNameElement = null;
+
+        function openNameModal(element) {
+            currentNameElement = element;
+            document.getElementById('name-modal').style.display = 'block';
+            document.body.style.overflow = 'hidden';
+            
+            // Focus the input field
+            setTimeout(() => {
+                document.getElementById('full-name').focus();
+            }, 100);
+        }
+
+        function closeNameModal() {
+            document.getElementById('name-modal').style.display = 'none';
+            document.body.style.overflow = '';
+        }
+
+        function clearName() {
+            document.getElementById('full-name').value = '';
+            document.getElementById('full-name').focus();
+        }
+
+        function placeName() {
+            const name = document.getElementById('full-name').value.trim();
+            if (name !== "") {
+                currentNameElement.innerHTML = `<i class="fas fa-user mr-2"></i>${name}`;
+                currentNameElement.classList.add('non-draggable');
+            }
+            closeNameModal();
+        }
+
+        // Text Modal Functions
+        let currentTextElement = null;
+
+        function openTextModal(element) {
+            currentTextElement = element;
+            document.getElementById('text-modal').style.display = 'block';
+            document.body.style.overflow = 'hidden';
+            
+            // Focus the textarea
+            setTimeout(() => {
+                document.getElementById('text-input').focus();
+            }, 100);
+        }
+
+        function closeTextModal() {
+            document.getElementById('text-modal').style.display = 'none';
+            document.body.style.overflow = '';
+        }
+
+        function clearText() {
+            document.getElementById('text-input').value = '';
+            document.getElementById('text-input').focus();
+        }
+
+        function placeText() {
+            const text = document.getElementById('text-input').value.trim();
+            if (text !== "") {
+                currentTextElement.innerHTML = `<i class="fas fa-text-width mr-2"></i>${text}`;
+                currentTextElement.classList.add('non-draggable');
+            }
+            closeTextModal();
+        }
+
+        // Function to save the document as an image
+        function saveDocumentAsImage() {
+            const documentViewer = document.getElementById('document-viewer');
+            
+            // Show saving indicator
+            const originalContent = documentViewer.innerHTML;
+            documentViewer.innerHTML = `
+                <div class="flex flex-col items-center justify-center h-full">
+                    <i class="fas fa-spinner fa-spin text-indigo-500 text-3xl mb-3"></i>
+                    <p class="text-gray-700">Saving document as image...</p>
+                </div>
+            `;
+            
+            html2canvas(documentViewer).then(canvas => {
+                documentViewer.innerHTML = originalContent;
+                
+                const link = document.createElement('a');
+                link.download = 'document.png';
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+                
+                // Show success toast
+                showToast('Document saved as image successfully');
+            }).catch(error => {
+                documentViewer.innerHTML = originalContent;
+                showToast('Failed to save as image: ' + error.message, true);
+            });
+        }
+
+        // Function to save the document as a PDF
+        function saveDocumentAsPDF() {
+            const documentViewer = document.getElementById('document-viewer');
+            
+            // Show saving indicator
+            const originalContent = documentViewer.innerHTML;
+            documentViewer.innerHTML = `
+                <div class="flex flex-col items-center justify-center h-full">
+                    <i class="fas fa-spinner fa-spin text-indigo-500 text-3xl mb-3"></i>
+                    <p class="text-gray-700">Saving document as PDF...</p>
+                </div>
+            `;
+            
+            html2canvas(documentViewer).then(canvas => {
+                documentViewer.innerHTML = originalContent;
+                
+                const imgData = canvas.toDataURL('image/png');
+                const pdf = new jsPDF('p', 'mm', 'a4');
+                const imgWidth = 210; // A4 width in mm
+                const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                
+                pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+                pdf.save('document.pdf');
+                
+                // Show success toast
+                showToast('Document saved as PDF successfully');
+            }).catch(error => {
+                documentViewer.innerHTML = originalContent;
+                showToast('Failed to save as PDF: ' + error.message, true);
+            });
+        }
+        
+        // Toast notification
+        function showToast(message, isError = false) {
+            const toast = document.createElement('div');
+            toast.className = `fixed bottom-4 left-1/2 transform -translate-x-1/2 px-4 py-2 rounded-lg shadow-lg text-white font-medium ${
+                isError ? 'bg-red-500' : 'bg-green-500'
+            }`;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'transition-opacity', 'duration-300');
+                setTimeout(() => {
+                    toast.remove();
+                }, 300);
+            }, 3000);
+        }
+
+        // Function to delete the current uploaded file
+        function deleteFile() {
+            // Clear the document viewer
+            const documentViewer = document.getElementById('document-viewer');
+            documentViewer.innerHTML = `
+                <p class="text-gray-400 text-center p-6">
+                    <i class="fas fa-file-upload text-4xl mb-3"></i><br>
+                    Drag and drop elements or a file to start editing your document
+                </p>
+            `;
+
+            // Remove the file from local storage
+            localStorage.removeItem('uploadedFile');
+            localStorage.removeItem('uploadedFileName');
+            localStorage.removeItem('uploadedFileType');
+
+            // Reset the document name input field
+            document.getElementById('document-name').value = '';
+            
+            // Show toast
+            showToast('Document removed successfully');
+        }
+
+        // Add event listener to the delete button
+        document.getElementById('delete-button').addEventListener('click', deleteFile);
+
+        // Handle file drop on document viewer
+        document.getElementById('document-viewer').addEventListener('drop', (event) => {
+            event.preventDefault();
+            const files = event.dataTransfer.files;
+            if (files.length > 0) {
+                const file = files[0];
+                const reader = new FileReader();
+                
+                // Show loading state
+                const documentViewer = document.getElementById('document-viewer');
+                documentViewer.innerHTML = `
+                    <div class="flex flex-col items-center justify-center p-6">
+                        <i class="fas fa-spinner fa-spin text-indigo-500 text-3xl mb-3"></i>
+                        <p class="text-gray-700">Loading document...</p>
+                    </div>
+                `;
+                
+                if (file.type.startsWith('image/')) {
+                    reader.onload = function(e) {
+                        const img = document.createElement('img');
+                        img.src = e.target.result;
+                        img.style.maxWidth = '100%';
+                        img.style.maxHeight = '100%';
+                        img.style.objectFit = 'contain';
+                        documentViewer.innerHTML = '';
+                        documentViewer.appendChild(img);
+                        
+                        // Store the file
+                        localStorage.setItem('uploadedFile', e.target.result);
+                        localStorage.setItem('uploadedFileName', file.name);
+                        localStorage.setItem('uploadedFileType', file.type);
+                    };
+                    reader.readAsDataURL(file);
+                } else if (file.type === 'application/pdf') {
+                    reader.onload = function(e) {
+                        renderPDF(e.target.result, documentViewer);
+                        
+                        // Store the file
+                        localStorage.setItem('uploadedFile', e.target.result);
+                        localStorage.setItem('uploadedFileName', file.name);
+                        localStorage.setItem('uploadedFileType', file.type);
+                    };
+                    reader.readAsDataURL(file);
+                } else if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+                    reader.onload = function(e) {
+                        renderWordDocument(e.target.result, documentViewer);
+                        
+                        // Store the file
+                        localStorage.setItem('uploadedFile', e.target.result);
+                        localStorage.setItem('uploadedFileName', file.name);
+                        localStorage.setItem('uploadedFileType', file.type);
+                    };
+                    reader.readAsArrayBuffer(file);
+                } else {
+                    documentViewer.innerHTML = `
+                        <div class="flex flex-col items-center justify-center p-6 text-center text-red-500">
+                            <i class="fas fa-exclamation-circle text-3xl mb-3"></i>
+                            <p class="font-medium">Unsupported file type</p>
+                            <p class="text-sm mt-1">Only image, PDF, and Word files are supported</p>
+                        </div>
+                    `;
+                }
+            }
+        });
+
+        // Allow file drag over document viewer
+        document.getElementById('document-viewer').addEventListener('dragover', (event) => {
+            event.preventDefault();
+            event.currentTarget.classList.add('border-indigo-500', 'bg-indigo-50');
+        });
+        
+        document.getElementById('document-viewer').addEventListener('dragleave', (event) => {
+            event.preventDefault();
+            event.currentTarget.classList.remove('border-indigo-500', 'bg-indigo-50');
+        });
+
+        // Zoom Functions
+        let currentZoom = 1;
+
+        function zoomIn() {
+            currentZoom += 0.25;
+            if (currentZoom > 2) currentZoom = 2;
+            applyZoom();
+        }
+
+        function zoomOut() {
+            currentZoom -= 0.25;
+            if (currentZoom < 0.25) currentZoom = 0.25;
+            applyZoom();
+        }
+
+        function changeZoomLevel(event) {
+            currentZoom = parseFloat(event.target.value);
+            applyZoom();
+        }
+
+        function applyZoom() {
+            const documentViewer = document.getElementById('document-viewer');
+            documentViewer.style.transform = `scale(${currentZoom})`;
+            
+            // Update select value
+            document.getElementById('zoom-level').value = currentZoom;
+        }
+        
+        // Close modals when clicking outside
+        window.addEventListener('click', function(event) {
+            if (event.target.classList.contains('modal')) {
+                event.target.style.display = 'none';
+                document.body.style.overflow = '';
+            }
+        });
+        
+        // Initialize the app
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set up any initial state
+        });
+    </script>
 </body>
 </html>
